@@ -5,7 +5,6 @@ from datetime import date
 
 import pytest
 from click.testing import CliRunner
-
 from auto_changelog.__main__ import main
 
 
@@ -694,3 +693,35 @@ def test_no_debug(caplog, runner, open_changelog):
     assert result.exit_code == 0, result.stderr
     assert result.output == ""
     assert "Logging level has been set to DEBUG" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "commands",
+    [
+        [
+            'git commit --allow-empty -m "feat: Add file #1"',
+        ]
+    ],
+)
+def test_ignore_commit_message(runner, open_changelog):
+    result = runner.invoke(main, args=["-i", "file", "-u"])
+    assert result.exit_code == 0, result.stderr
+    assert result.output == ""
+    changelog = open_changelog().read()
+    assert changelog == "# Changelog\n"
+
+
+@pytest.mark.parametrize(
+    "commands",
+    [
+        [
+            'git commit --allow-empty -m "feat: Это сообщение написано на кириллице #1"',
+        ]
+    ],
+)
+def test_cyrillic_commit_message(runner, open_changelog):
+    result = runner.invoke(main, args=["-u"])
+    assert result.exit_code == 0, result.stderr
+    assert result.output == ""
+    changelog = open_changelog().read()
+    assert "Это сообщение написано на кириллице" in changelog

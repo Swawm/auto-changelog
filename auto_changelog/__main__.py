@@ -81,6 +81,12 @@ def generate_changelog(repository: RepositoryInterface, presenter: PresenterInte
     is_flag=True,
     help="set logging level to DEBUG",
 )
+@click.option(
+    "-i",
+    "--ignore",
+    default=None,
+    help="Ignore commit message if it contains custom words"
+)
 def main(  # pylint: disable=too-many-arguments,too-many-locals
     path_repo,
     gitlab,
@@ -101,6 +107,7 @@ def main(  # pylint: disable=too-many-arguments,too-many-locals
     starting_commit: str,
     stopping_commit: str,
     debug: bool,
+    ignore: Optional[str],
 ):
     if debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -114,6 +121,7 @@ def main(  # pylint: disable=too-many-arguments,too-many-locals
 
     # Convert the repository name to an absolute path
     repo = os.path.abspath(path_repo)
+    ignore_words = ignore.split(",") if ignore else None
 
     repository = GitRepository(
         repo,
@@ -121,6 +129,7 @@ def main(  # pylint: disable=too-many-arguments,too-many-locals
         skip_unreleased=not unreleased,
         tag_prefix=tag_prefix,
         tag_pattern=tag_pattern,
+        ignore_words=ignore_words,
     )
     presenter = MarkdownPresenter(template=template)
     changelog = generate_changelog(

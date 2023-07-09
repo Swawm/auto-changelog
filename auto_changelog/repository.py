@@ -17,6 +17,7 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
         repository_path,
         latest_version: Optional[str] = None,
         skip_unreleased: bool = True,
+        ignore_words: List[str] = None,
         tag_prefix: str = "",
         tag_pattern: Optional[str] = None,
     ):
@@ -26,6 +27,7 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
         self.commit_tags_index = self._init_commit_tags_index(self.repository, self.tag_prefix, self.tag_pattern)
         # in case of defined latest version, unreleased is used as latest release
         self._skip_unreleased = skip_unreleased and not bool(latest_version)
+        self.ignore_words = ignore_words
         self._latest_version = latest_version or None
 
     def generate_changelog(  # pylint: disable=too-many-arguments,too-many-locals
@@ -64,6 +66,11 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
                 locallogger.debug("Skipping unreleased commit %s", sha)
                 continue
             skip = False
+
+            if self.ignore_words:
+                if self.commit_contains_control_words(commit):
+                    locallogger.debug("Skipping commit message, because words from blacklist were found.")
+                    continue
 
             if first_commit and commit not in self.commit_tags_index:
                 # if no last version specified by the user => consider HEAD
@@ -232,3 +239,9 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
             else:
                 body = body_footer[2:]
         return type_, scope, description, body, footer
+
+    def commit_contains_control_words(self, commit) -> bool:
+        for control_word in self.ignore_words:
+            if control_word in commit.message.split():
+                return True
+        return False
