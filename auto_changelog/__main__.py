@@ -81,12 +81,7 @@ def generate_changelog(repository: RepositoryInterface, presenter: PresenterInte
     is_flag=True,
     help="set logging level to DEBUG",
 )
-@click.option(
-    "-i",
-    "--ignore",
-    default=None,
-    help="Ignore commit message if it contains custom words"
-)
+@click.option("-i", "--ignore", default=None, help="Ignore commit message if it contains custom words")
 def main(  # pylint: disable=too-many-arguments,too-many-locals
     path_repo,
     gitlab,

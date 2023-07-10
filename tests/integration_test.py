@@ -715,7 +715,7 @@ def test_ignore_commit_message(runner, open_changelog):
     "commands",
     [
         [
-            'git commit --allow-empty -m "feat: Это сообщение написано на кириллице #1"',
+            'git commit --allow-empty -m "feat(api): Это сообщение написано на кириллице #1"',
         ]
     ],
 )
