@@ -715,7 +715,23 @@ def test_ignore_commit_message(runner, open_changelog):
     "commands",
     [
         [
-            'git commit --allow-empty -m "feat(api): Это сообщение написано на кириллице #1"',
+            'git commit --allow-empty -m "feat(api): Must have scope flag added"',
+        ]
+    ],
+)
+def test_scope_commit_message(runner, open_changelog):
+    result = runner.invoke(main, args=["--scope", "-u"])
+    assert result.exit_code == 0, result.stderr
+    assert result.output == ""
+    changelog = open_changelog().read()
+    assert "(api):" in changelog
+
+
+@pytest.mark.parametrize(
+    "commands",
+    [
+        [
+            'git commit --allow-empty -m "feat(api): Это сообщение написано на кириллице"',
         ]
     ],
 )
@@ -725,3 +741,22 @@ def test_cyrillic_commit_message(runner, open_changelog):
     assert result.output == ""
     changelog = open_changelog().read()
     assert "Это сообщение написано на кириллице" in changelog
+
+
+@pytest.mark.parametrize(
+    "commands",
+    [
+        [
+            'git commit --allow-empty -m "feat(api): Add file #2"',
+            'git commit --allow-empty -m "feat: Add file #1"',
+            'git commit --allow-empty --amend -m "New commit message instead of add file #1, that will not be shown '
+            'in changelog"',
+        ]
+    ],
+)
+def test_commit_amend_message(runner, open_changelog):
+    result = runner.invoke(main, args=["-u"])
+    assert result.exit_code == 0, result.stderr
+    assert result.output == ""
+    changelog = open_changelog().read()
+    assert changelog == "# Changelog\n\n## Unreleased (2023-07-11)\n\n#### New Features\n\n* (api): Add file #2\n"

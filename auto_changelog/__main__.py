@@ -82,6 +82,7 @@ def generate_changelog(repository: RepositoryInterface, presenter: PresenterInte
     help="set logging level to DEBUG",
 )
 @click.option("-i", "--ignore", default=None, help="Ignore commit message if it contains custom words")
+@click.option("--scope", is_flag=True, help="Commit message must have scope")
 def main(  # pylint: disable=too-many-arguments,too-many-locals
     path_repo,
     gitlab,
@@ -103,6 +104,7 @@ def main(  # pylint: disable=too-many-arguments,too-many-locals
     stopping_commit: str,
     debug: bool,
     ignore: Optional[str],
+    scope: bool,
 ):
     if debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -125,6 +127,7 @@ def main(  # pylint: disable=too-many-arguments,too-many-locals
         tag_prefix=tag_prefix,
         tag_pattern=tag_pattern,
         ignore_words=ignore_words,
+        scope_required=scope,
     )
     presenter = MarkdownPresenter(template=template)
     changelog = generate_changelog(

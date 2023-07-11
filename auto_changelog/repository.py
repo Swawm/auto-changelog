@@ -18,6 +18,7 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
         latest_version: Optional[str] = None,
         skip_unreleased: bool = True,
         ignore_words: List[str] = None,
+        scope_required: bool = False,
         tag_prefix: str = "",
         tag_pattern: Optional[str] = None,
     ):
@@ -28,6 +29,7 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
         # in case of defined latest version, unreleased is used as latest release
         self._skip_unreleased = skip_unreleased and not bool(latest_version)
         self.ignore_words = ignore_words
+        self.scope_required = scope_required
         self._latest_version = latest_version or None
 
     def generate_changelog(  # pylint: disable=too-many-arguments,too-many-locals
@@ -87,7 +89,7 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
                 locallogger.debug("Adding release '%s' with attributes %s", release_attributes[0], release_attributes)
                 changelog.add_release(*release_attributes)
 
-            note_attributes = self._extract_note_args(commit)
+            note_attributes = self._extract_note_args(self.scope_required, commit)
             locallogger.debug("Adding commit %s with attributes %s", sha, note_attributes)
             changelog.add_note(*note_attributes)
 
@@ -211,18 +213,18 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
         return title, title, date_, sha
 
     @staticmethod
-    def _extract_note_args(commit) -> Tuple[str, str, str, str, str, str]:
+    def _extract_note_args(scope_required, commit) -> Tuple[str, str, str, str, str, str]:
         """Extracts arguments for release Note from commit"""
         sha = commit.hexsha
         message = commit.message
-        type_, scope, description, body, footer = GitRepository._parse_conventional_commit(message)
+        type_, scope, description, body, footer = GitRepository._parse_conventional_commit(message, scope_required)
         return sha, type_, description, scope, body, footer
 
     @staticmethod
-    def _parse_conventional_commit(message: str) -> Tuple[str, str, str, str, str]:
+    def _parse_conventional_commit(message: str, scope_required: bool = False) -> Tuple[str, str, str, str, str]:
         type_ = scope = description = body_footer = body = footer = ""
         # TODO this is less restrictive version of re. I have somewhere more restrictive one, maybe as option?
-        match = re.match(r"^(\w+)(\(\w+\))!?: (.*)(\n\n[\w\W]*)?$", message.strip())
+        match = check_required_scope_flag(message, scope_required)
         if match:
             type_, scope, description, body_footer = match.groups(default="")
         else:
@@ -245,3 +247,10 @@ class GitRepository(RepositoryInterface):  # pylint: disable=too-few-public-meth
             if control_word in commit.message.split():
                 return True
         return False
+
+
+def check_required_scope_flag(message, scope_flag) -> [str]:
+    if scope_flag:
+        return re.match(r"^(\w+)(\(\w+\))!?: (.*)(\n\n[\w\W]*)?$", message.strip())
+    else:
+        return re.match(r"^(\w+)(\(\w+\))?!?: (.*)(\n\n[\w\W]*)?$", message.strip())
